@@ -1,0 +1,324 @@
+---
+title: "Consumo Alimentar e dataSus"
+author: Emanuel Diego S Penha
+date: Oct 19, 2014
+output:
+html_document:
+toc: true
+pdf_document:
+  toc: true
+---
+turn on cache
+
+```{r }
+knitr::opts_chunk$set(cache=TRUE)
+```
+
+
+#### 1. ler tabelas do datasus
+
+```{r }
+obito_neo_mas<-read.table(file = "data/obito_neo_mas.csv",skip = 4, nrows = 26,
+  sep = ";", header = TRUE, fileEncoding =  "Latin1", na.strings="-", dec = ",")
+obito_neo_mas$genero<-"masculino";
+
+obito_neo_fem<-read.table(file = "data/obito_neo_fem.csv",skip = 4, nrows = 26,
+  sep = ";", header = TRUE, fileEncoding =  "Latin1", na.strings="-", dec = ",")
+obito_neo_fem$genero<-"feminino"
+
+obito_neo<-rbind(obito_neo_mas, obito_neo_fem)
+obito_neo_mas<-NULL
+obito_neo_fem<-NULL
+
+pop_mas<-read.table(file = "data/pop_2011_mas.csv",skip = 4, nrows = 26,
+  sep = ";", header = TRUE, fileEncoding =  "Latin1", na.strings="-", dec = ",")
+pop_mas$genero="masculino"
+
+pop_fem<-read.table(file = "data/pop_2011_mas.csv",skip = 4, nrows = 26,
+  sep = ";", header = TRUE, fileEncoding =  "Latin1", na.strings="-", dec = ",")
+pop_fem$genero="feminino"
+
+pop<-rbind(pop_mas, pop_fem)
+pop_mas<-NULL
+pop_fem<-NULL
+
+obito_neo$obitosAcima60 <- as.numeric(obito_neo$X60.a.69.anos + obito_neo$X70.a.79.anos + obito_neo$X80.anos.e.mais)
+pop$populacaoAcima60 <- as.numeric(pop$X60.a.69.anos + pop$X70.a.79.anos + pop$X80.anos.e.mais)
+mortalidade <- merge(x = obito_neo, y = pop, by= c("Unidade.da.Federação", "genero"))
+mortalidade <- mortalidade[,c("Unidade.da.Federação", "genero", "populacaoAcima60", "obitosAcima60")]
+mortalidade$tme <- mortalidade$obitosAcima60 / mortalidade$populacaoAcima60 * 100000
+```
+
+#### 2. carregar pacote com dicionários
+
+```{r }
+require("dicionariosIBGE")
+data(package = "dicionariosIBGE")
+data(dicPOF2008.2009)
+```
+
+#### 3. carregar dados de morador
+
+```{r }
+morador <- read.fwf("data/T_MORADOR_S.txt", widths = dic2pof2008.2009$tamanho)
+colnames(morador)<-dic2pof2008.2009$cod
+head(morador)
+```
+
+#### 4. formatar dados de consumo
+criar lista com rotulos
+
+```{r }
+rotulos <- split(x = rot16pof2008.2009,f = rot16pof2008.2009$cod)
+```
+
+ler microdados
+
+```{r }
+consumo <- read.fwf("data/T_CONSUMO_S.txt", widths = dic16pof2008.2009$tamanho)
+```
+
+renomar colunas
+
+```{r }
+colnames (consumo)<-dic16pof2008.2009$cod
+```
+
+ver microdados com nomes de colunas
+
+```{r }
+head (consumo)
+```
+
+substituir COD_UF pelo rótulo
+
+```{r }
+#consumo$COD_UF<-apply(consumo, 1 , function(aa) rotulos$COD_UF$rotulo[match (aa["COD_UF"], rotulos$COD_UF$valor)])
+#consumo$COD_UF<-as.factor(consumo$COD_UF)
+```
+
+#### 5. carregar tabela de composição usada na POF
+tabela completa URL
+ftp://ftp.ibge.gov.br/Orcamentos_Familiares/Pesquisa_de_Orcamentos_Familiares_2008_2009/Tabelas_de_Composicao_Nutricional_dos_Alimentos_Consumidos_no_Brasil/tabelacompleta.zip
+
+```{r }
+require(XLConnect)
+wb = loadWorkbook("data/tabelacompleta.xls")
+compCentesimal = readWorksheet(wb, sheet = "Tabela de Composição ", header = TRUE, startRow = 3, )
+head(compCentesimal)
+
+#compCentesimal<-read.xls("data/tabelacompleta.xls")
+#  head(compCentesimal)
+#  read.table(file = "data/tabelacompleta.txt", encoding = "Latin1",
+#  skip = 3, sep = "\t", header = TRUE, fileEncoding =  "Latin1", na.strings="-")
+compCentesimal<-apply(compCentesimal, MARGIN = c(1,2), FUN = function(a) ifelse(a=="-",NA, a))
+names(compCentesimal)
+```
+
+drop blank fields
+
+```{r }
+#summary(compCentesimal)
+#compCentesimal<-compCentesimal[,1:43]
+```
+
+#### 6. Merge composição e consumo para obter ingestão de nutrientes.
+
+```{r }
+compInd <- merge(x = consumo, y = compCentesimal, by.x = c("COD_ITEM", "COD_PREPARACAO"),
+  by.y = c("CÓDIGO.DO.ALIMENTO.", "CÓDIGO............DA.PREPARAÇÃO."), all.x = TRUE, all.y = FALSE)
+
+head (compInd)
+compInd<-as.data.frame(compInd)
+```
+
+regra de 3 para obter ingestão por indivíduo/dia para macronutrientes. 
+
+```{r }
+regraDeTres<-function(numeratorList, denominator ){
+  lapply(numeratorList, function(a){
+    as.numeric(denominator)/100*as.numeric(a)
+  })
+}
+```
+
+ver nomes dos itens na lista
+
+```{r }
+names(compInd)
+```
+
+usar somente as variaveis alimentares
+
+```{r }
+compInd[,31:67]<-regraDeTres(compInd[,31:67], compInd$QTD_FINAL)
+```
+
+verificar o número de pessoas
+
+```{r }
+length(levels(as.factor(paste(compInd$COD_UF, compInd$NUM_SEQ, compInd$NUM_DV, 
+  compInd$COD_DOMC, compInd$NUM_UC, compInd$NUM_INFORMANTE, sep = " - "))))
+```
+
+add a ID field
+
+```{r }
+compInd$ID <- as.factor(paste(compInd$COD_UF, compInd$NUM_SEQ, compInd$NUM_DV,
+  compInd$COD_DOMC, compInd$NUM_UC, compInd$NUM_INFORMANTE, sep = " - "))
+
+head(compInd$ID)
+```
+
+#### 7 merge com os dados de moradores
+
+```{r }
+morador$ID <- as.factor(paste(morador$COD_UF, morador$NUM_SEQ, morador$NUM_DV,
+  morador$COD_DOMC, morador$NUM_UC, morador$NUM_INFORMANTE, sep = " - "))
+
+head(morador$ID)
+```
+
+merge somente idade sexo e ID
+
+```{r }
+moradorConsumo <- merge(x = compInd, y = morador[c("ID", "COD_SEXO", "IDADE_ANOS")], all.x = TRUE)
+
+names(moradorConsumo)
+head(moradorConsumo)
+```
+
+num do quadro = 71 para primeiro dia, 72 para seagundo dia.
+
+```{r }
+moradorConsumoPorDia<-aggregate(x = moradorConsumo[,32:68] , by=list( moradorConsumo$COD_UF, 
+  moradorConsumo$ID, moradorConsumo$NUM_QUADRO), FUN="sum",  na.rm=TRUE)
+
+write.table(moradorConsumoPorDia, file = "moradorConsumoPorDia.txt", quote = FALSE)
+```
+
+merge novamente somente idade sexo e ID (tenho que concertar isso mais tarde)
+
+```{r }
+moradorConsumoPorDia <- merge(x = moradorConsumoPorDia, y = morador[c("ID", "COD_SEXO", "IDADE_ANOS")],
+  by.x = "Group.2", by.y = "ID", all.x = TRUE)
+```
+
+substituir COD_UF pelo rótulo
+
+```{r }
+moradorConsumoPorDia$Group.1<-apply(moradorConsumoPorDia, 1 , function(aa) {
+  rotulos$COD_UF$rotulo[match (aa["Group.1"], rotulos$COD_UF$valor)]
+})
+moradorConsumoPorDia$Group.1<-as.factor(moradorConsumoPorDia$Group.1)
+#moradorConsumoPorDia$classIDADE_ANOS<-cut(x = moradorConsumoPorDia$IDADE_ANOS, breaks = c(0, 60, Inf))#original era 18, 30, 50, 70, Inf
+#moradorConsumoPorDia$Group.1
+moradorConsumoPorDia<-moradorConsumoPorDia[moradorConsumoPorDia$IDADE_ANOS>=60,]
+head(moradorConsumoPorDia)
+```
+
+consumo por estado
+
+```{r }
+moradorConsumoPorDiaAgregado<-apply(moradorConsumoPorDia[4:(length(moradorConsumoPorDia)-3)], MARGIN = (2),
+  FUN = function(a) {
+    aggregate(a ~ COD_SEXO + Group.1 , data = moradorConsumoPorDia, FUN= "median" )
+  })
+
+# #' #############################################
+# 
+# #' change labels to match intake data
+# levels(datasusEstFem$Doenças..Faixas.Etárias.DRI)
+# levels(moradorConsumoPorDiaAgregado$ENERGIA..kcal.$classIDADE_ANOS)
+# levels(datasusEstFem$Doenças..Faixas.Etárias.DRI)<-c ("(70,Inf]" , "(18,30]" , "(30,50]" , "(50,70]" , NA)
+# levels(datasusEstMas$Doenças..Faixas.Etárias.DRI)<-c ("(70,Inf]" , "(18,30]" , "(30,50]" , "(50,70]" , NA)
+# levels(datasusEstFem$estado)<-levels(moradorConsumoPorDia$Group.1)
+# levels(datasusEstMas$estado)<-levels(moradorConsumoPorDia$Group.1)
+# 
+# ## ---- last piece of code. Heavy one.
+# #' #### 8 Média de consumo por estado, sexo, faixa etária
+# #moradorConsumoPorDiaAgregado
+# moradorConsumoPorDiaAgregado<-lapply(moradorConsumoPorDiaAgregado, function(a){
+#   split(a,a$COD_SEXO)
+# })
+# #View(moradorConsumoPorDiaAgregado)
+# # COD_SEX = 1 para homens e 2 para mulheres
+# moradorConsumoPorDiaAgregadoFem<-lapply(moradorConsumoPorDiaAgregado , function(a){
+#   merge(x=a$`2`, y=datasusEstFem, by.x = c("Group.1", "classIDADE_ANOS"),
+#     by.y=c("estado", "Doenças..Faixas.Etárias.DRI"))
+#     })
+# moradorConsumoPorDiaAgregadoMas<-lapply(moradorConsumoPorDiaAgregado , function(a){
+#   merge(x=a$`1`, y=datasusEstMas, by.x = c("Group.1", "classIDADE_ANOS"),
+#         by.y=c("estado", "Doenças..Faixas.Etárias.DRI"))
+# })
+# 
+# moradorConsumoPorDiaAgregadoFem<- lapply(moradorConsumoPorDiaAgregadoFem, function (a){
+#   split(a, a$classIDADE_ANOS)
+# })
+# 
+# moradorConsumoPorDiaAgregadoMas<- lapply(moradorConsumoPorDiaAgregadoMas, function (a){
+#   split(a, a$classIDADE_ANOS)
+# })
+# 
+# write.csv(x = as.data.frame(moradorConsumoPorDiaAgregadoFem), file = "moradorConsumoPorDiaAgregadoFem.csv")
+# write.csv(x = as.data.frame(moradorConsumoPorDiaAgregadoMas), file = "moradorConsumoPorDiaAgregadoMas.csv")
+# 
+# 
+# library("Hmisc")
+# correlacoesFem <- lapply(moradorConsumoPorDiaAgregadoFem, function(g) {
+#   lapply(g, function(a) {
+#     rcorr(as.matrix(a[4:length(a)]),type = "spearman")
+#   })
+# })
+# correlacoesMas <- lapply(moradorConsumoPorDiaAgregadoMas, function(g) {
+#   lapply(g, function(a) {
+#     rcorr(as.matrix(a[4:length(a)]),type = "spearman")
+#   })
+# })
+# 
+# correlacoesFem
+# correlacoesMas
+# 
+# #' #### 9 Diminuir a tabela de correlações para obter somente os valores da correlação
+# #' entre nutrientes e doenças, excluindo as relações entre doenças e doenças
+# 
+# correlacoesFem<-lapply(correlacoesFem, function(g){
+#   lapply(g, function(a){
+#     lapply(a, function(i){
+#       i[1,]
+#     })
+#   })
+# })
+# 
+# correlacoesMas<-lapply(correlacoesMas, function(g){
+#   lapply(g, function(a){
+#     lapply(a, function(i){
+#       i[1,]
+#     })
+#   })
+# })
+# 
+# 
+# #correlacoesFem
+# #correlacoesMas
+# 
+# write.csv(x = as.data.frame(correlacoesFem), file = "correlacoesFem.csv")
+# write.csv(x = as.data.frame(correlacoesMas), file = "correlacoesMas.csv")
+# 
+# plot(moradorConsumoPorDiaAgregadoMas$ENERGIA..kcal.$`(50,70]`[,4:5])
+# text(moradorConsumoPorDiaAgregadoMas$ENERGIA..kcal.$'(50,70]'[,4] , moradorConsumoPorDiaAgregadoMas$ENERGIA..kcal.$'(50,70]'[,5] , moradorConsumoPorDiaAgregadoMas$ENERGIA..kcal.$'(18,30]'[,1], cex=0.6, pos=4, col="blue")
+# 
+# 
+# library("VIM")
+# matrixplot(correlacoesFem)
+# lala<-na.omit(as.data.frame(correlacoesFem))
+# lelep<-seq(from = 3, by = 3, to = length(lala))
+# leler<-seq(from = 1, by = 3, to = length(lala))
+# View(as.matrix(lala[,lele])) 
+# matrixplot(as.matrix(lala[,lele]), )
+# heatmap(as.matrix(lala[,lelep]), na.rm = FALSE,margins = c(15,15))
+# heatmap(as.matrix(lala[,leler]), na.rm = FALSE,margins = c(15,15))
+# matrixplot(as.matrix(lala[,leler]), na.rm = FALSE,margins = c(15,15))
+# matrix
+```
+

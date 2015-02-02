@@ -1,0 +1,43 @@
+ C.10 Taxa de mortalidade específica por neoplasias malignas
+Óbitos p/neopl malignas por Unidade da Federação e Faixa etária
+Sexo: Feminino
+Período:2011
+"Unidade da Federação";"0 a 29 anos";"30 a 39 anos";"40 a 49 anos";"50 a 59 anos";"60 a 69 anos";"70 a 79 anos";"80 anos e mais";"Total"
+"Rondônia";22;19;72;91;83;64;46;397
+"Acre";11;12;19;38;33;24;19;156
+"Amazonas";53;80;150;165;208;185;131;972
+"Roraima";1;7;19;22;18;15;7;89
+"Pará";114;132;225;329;333;319;225;1677
+"Amapá";9;18;30;28;22;16;15;138
+"Tocantins";18;26;53;74;76;74;58;379
+"Maranhão";106;105;219;315;326;285;214;1570
+"Piauí";47;54;111;196;247;232;175;1062
+"Ceará";122;144;361;576;702;787;679;3371
+"Rio Grande do Norte";37;66;139;225;284;284;279;1314
+"Paraíba";50;70;155;256;337;331;327;1526
+"Pernambuco";144;164;434;681;814;829;680;3746
+"Alagoas";51;72;117;152;175;157;122;846
+"Sergipe";34;43;97;137;136;144;104;695
+"Bahia";200;235;556;823;956;865;824;4459
+"Minas Gerais";234;321;879;1589;1809;1890;1737;8459
+"Espírito Santo";48;84;180;300;300;304;338;1554
+"Rio de Janeiro";232;354;952;1927;2179;2119;1914;9677
+"São Paulo";500;825;2059;4080;4701;5013;4388;21566
+"Paraná";162;193;549;964;1245;1189;949;5251
+"Santa Catarina";78;137;355;561;676;702;558;3067
+"Rio Grande do Sul";136;224;660;1355;1674;1841;1600;7490
+"Mato Grosso do Sul";41;36;113;189;213;206;148;946
+"Mato Grosso";34;54;137;191;195;171;101;883
+"Goiás";94;121;277;471;482;459;283;2187
+"Distrito Federal";38;57;130;198;230;214;185;1052
+"Total";2616;3653;9048;15933;18454;18719;16106;84529
+ Fonte: Ministério da Saúde/SVS - Sistema de Informações sobre Mortalidade - SIM
+ Notas:
+ Nas tabulações por faixa etária ou sexo, estão suprimidos os casos com idade ou sexo ignorados, respectivamente.
+ TME - Taxa de mortalidade específica: óbitos por 100.000 habitantes.
+ Taxas calculadas a partir dos óbitos informados ao SIM. As análises devem considerar as limitações de cobertura e qualidade da informação da causa de óbito.
+ A taxa de mortalidade específica não padronizada por idade está sujeitas à influência de variações na composição etária da população,
+ o que exige cautela nas comparações entre áreas geográficas e para períodos distintos.
+ As taxas de mortalidade específica por neoplasias do colo do útero e da mama estão calculadas apenas para a população feminina,
+ e por neoplasias da próstata apenas para a população masculina.
+ 

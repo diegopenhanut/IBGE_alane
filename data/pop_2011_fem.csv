@@ -1,0 +1,43 @@
+ C.10 Taxa de mortalidade específica por neoplasias malignas
+População por Unidade da Federação e Faixa etária
+Sexo: Feminino
+Período:2011
+"Unidade da Federação";"0 a 29 anos";"30 a 39 anos";"40 a 49 anos";"50 a 59 anos";"60 a 69 anos";"70 a 79 anos";"80 anos e mais";"Total"
+"Rondônia";437018;126326;95468;61426;32261;15890;5778;774167
+"Acre";233046;54865;36332;23679;13601;6805;3291;371619
+"Amazonas";1098724;263218;173778;111864;62004;32341;15938;1757867
+"Roraima";142817;34236;23142;14321;7070;3268;1538;226392
+"Pará";2307051;570218;393019;264596;155597;82253;39296;3812030
+"Amapá";217781;52896;33345;19740;10157;5249;2589;341757
+"Tocantins";396992;106140;77869;51966;31372;17540;7909;689788
+"Maranhão";1992663;465418;343700;249019;159872;92850;45523;3349045
+"Piauí";855893;235534;188551;141777;93515;57046;29136;1601452
+"Ceará";2311415;642605;537977;373245;257683;159773;89625;4372323
+"Rio Grande do Norte";840598;246646;213367;141138;99182;58564;35463;1634958
+"Paraíba";991742;290559;241735;173674;128826;81269;47422;1955227
+"Pernambuco";2350595;711556;578604;418745;286200;168194;87226;4601120
+"Alagoas";902342;242698;188697;132849;84883;46444;22710;1620623
+"Sergipe";579478;168489;132349;88854;56122;31777;17245;1074314
+"Bahia";3768208;1109215;872060;630542;415061;247004;137974;7180064
+"Minas Gerais";4756455;1538197;1377691;1071568;670481;404558;203552;10022502
+"Espírito Santo";879573;286775;244322;187507;106847;63337;31712;1800073
+"Rio de Janeiro";3682784;1319334;1195159;999118;638226;387979;205332;8427932
+"São Paulo";9779378;3477159;3003899;2362230;1451733;845463;430688;21350550
+"Paraná";2542631;834565;762941;570258;354863;195754;87091;5348103
+"Santa Catarina";1511763;496977;464302;344182;202633;111346;51523;3182726
+"Rio Grande do Sul";2418521;791538;793978;670122;436973;263037;134525;5508694
+"Mato Grosso do Sul";637202;195773;166802;118532;69848;37932;17275;1243364
+"Mato Grosso";812954;251570;196221;127682;69828;33988;13215;1505458
+"Goiás";1546843;517343;415014;285740;168661;90218;37116;3060935
+"Distrito Federal";688945;250790;186387;121573;67015;32806;14556;1362072
+"Total";48683412;15280640;12936709;9755947;6130514;3572685;1815248;98175155
+ Fonte: Ministério da Saúde/SVS - Sistema de Informações sobre Mortalidade - SIM
+ Notas:
+ Nas tabulações por faixa etária ou sexo, estão suprimidos os casos com idade ou sexo ignorados, respectivamente.
+ TME - Taxa de mortalidade específica: óbitos por 100.000 habitantes.
+ Taxas calculadas a partir dos óbitos informados ao SIM. As análises devem considerar as limitações de cobertura e qualidade da informação da causa de óbito.
+ A taxa de mortalidade específica não padronizada por idade está sujeitas à influência de variações na composição etária da população,
+ o que exige cautela nas comparações entre áreas geográficas e para períodos distintos.
+ As taxas de mortalidade específica por neoplasias do colo do útero e da mama estão calculadas apenas para a população feminina,
+ e por neoplasias da próstata apenas para a população masculina.
+ 
