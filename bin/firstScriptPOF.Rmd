@@ -12,41 +12,48 @@ turn on cache
 
 ```{r }
 knitr::opts_chunk$set(cache=TRUE)
+getwd()
 ```
 
 
 #### 1. ler tabelas do datasus
 
 ```{r }
-obito_neo_mas<-read.table(file = "data/obito_neo_mas.csv",skip = 4, nrows = 26,
+getwd()
+obito_neo_mas<-read.table(file = "../data/obito_neo_mas.csv",skip = 4, nrows = 26,
   sep = ";", header = TRUE, fileEncoding =  "Latin1", na.strings="-", dec = ",")
-obito_neo_mas$genero<-"masculino";
+obito_neo_mas$COD_SEXO<-1;
 
-obito_neo_fem<-read.table(file = "data/obito_neo_fem.csv",skip = 4, nrows = 26,
+obito_neo_fem<-read.table(file = "../data/obito_neo_fem.csv",skip = 4, nrows = 26,
   sep = ";", header = TRUE, fileEncoding =  "Latin1", na.strings="-", dec = ",")
-obito_neo_fem$genero<-"feminino"
+obito_neo_fem$COD_SEXO<-2
 
 obito_neo<-rbind(obito_neo_mas, obito_neo_fem)
+head(obito_neo_fem)
+head(obito_neo_mas)
 obito_neo_mas<-NULL
 obito_neo_fem<-NULL
 
-pop_mas<-read.table(file = "data/pop_2011_mas.csv",skip = 4, nrows = 26,
+pop_mas<-read.table(file = "../data/pop_2011_mas.csv",skip = 4, nrows = 26,
   sep = ";", header = TRUE, fileEncoding =  "Latin1", na.strings="-", dec = ",")
-pop_mas$genero="masculino"
+pop_mas$COD_SEXO=1
 
-pop_fem<-read.table(file = "data/pop_2011_mas.csv",skip = 4, nrows = 26,
+pop_fem<-read.table(file = "../data/pop_2011_fem.csv",skip = 4, nrows = 26,
   sep = ";", header = TRUE, fileEncoding =  "Latin1", na.strings="-", dec = ",")
-pop_fem$genero="feminino"
+pop_fem$COD_SEXO=2
 
 pop<-rbind(pop_mas, pop_fem)
+head(pop_mas)
+head(pop_fem)
 pop_mas<-NULL
 pop_fem<-NULL
 
 obito_neo$obitosAcima60 <- as.numeric(obito_neo$X60.a.69.anos + obito_neo$X70.a.79.anos + obito_neo$X80.anos.e.mais)
 pop$populacaoAcima60 <- as.numeric(pop$X60.a.69.anos + pop$X70.a.79.anos + pop$X80.anos.e.mais)
-mortalidade <- merge(x = obito_neo, y = pop, by= c("Unidade.da.Federação", "genero"))
-mortalidade <- mortalidade[,c("Unidade.da.Federação", "genero", "populacaoAcima60", "obitosAcima60")]
+mortalidade <- merge(x = obito_neo, y = pop, by= c("Unidade.da.Federação", "COD_SEXO"))
+mortalidade <- mortalidade[,c("Unidade.da.Federação", "COD_SEXO", "populacaoAcima60", "obitosAcima60")]
 mortalidade$tme <- mortalidade$obitosAcima60 / mortalidade$populacaoAcima60 * 100000
+head(mortalidade)
 ```
 
 #### 2. carregar pacote com dicionários
@@ -60,7 +67,7 @@ data(dicPOF2008.2009)
 #### 3. carregar dados de morador
 
 ```{r }
-morador <- read.fwf("data/T_MORADOR_S.txt", widths = dic2pof2008.2009$tamanho)
+morador <- read.fwf("../data/T_MORADOR_S.txt", widths = dic2pof2008.2009$tamanho)
 colnames(morador)<-dic2pof2008.2009$cod
 head(morador)
 ```
@@ -75,7 +82,7 @@ rotulos <- split(x = rot16pof2008.2009,f = rot16pof2008.2009$cod)
 ler microdados
 
 ```{r }
-consumo <- read.fwf("data/T_CONSUMO_S.txt", widths = dic16pof2008.2009$tamanho)
+consumo <- read.fwf("../data/T_CONSUMO_S.txt", widths = dic16pof2008.2009$tamanho)
 ```
 
 renomar colunas
@@ -103,7 +110,7 @@ ftp://ftp.ibge.gov.br/Orcamentos_Familiares/Pesquisa_de_Orcamentos_Familiares_20
 
 ```{r }
 require(XLConnect)
-wb = loadWorkbook("data/tabelacompleta.xls")
+wb = loadWorkbook("../data/tabelacompleta.xls")
 compCentesimal = readWorksheet(wb, sheet = "Tabela de Composição ", header = TRUE, startRow = 3, )
 head(compCentesimal)
 
@@ -224,33 +231,76 @@ moradorConsumoPorDiaAgregado<-apply(moradorConsumoPorDia[4:(length(moradorConsum
   FUN = function(a) {
     aggregate(a ~ COD_SEXO + Group.1 , data = moradorConsumoPorDia, FUN= "median" )
   })
+View(moradorConsumoPorDiaAgregado)
 
-# #' #############################################
-# 
-# #' change labels to match intake data
-# levels(datasusEstFem$Doenças..Faixas.Etárias.DRI)
-# levels(moradorConsumoPorDiaAgregado$ENERGIA..kcal.$classIDADE_ANOS)
-# levels(datasusEstFem$Doenças..Faixas.Etárias.DRI)<-c ("(70,Inf]" , "(18,30]" , "(30,50]" , "(50,70]" , NA)
-# levels(datasusEstMas$Doenças..Faixas.Etárias.DRI)<-c ("(70,Inf]" , "(18,30]" , "(30,50]" , "(50,70]" , NA)
-# levels(datasusEstFem$estado)<-levels(moradorConsumoPorDia$Group.1)
-# levels(datasusEstMas$estado)<-levels(moradorConsumoPorDia$Group.1)
-# 
-# ## ---- last piece of code. Heavy one.
-# #' #### 8 Média de consumo por estado, sexo, faixa etária
-# #moradorConsumoPorDiaAgregado
-# moradorConsumoPorDiaAgregado<-lapply(moradorConsumoPorDiaAgregado, function(a){
-#   split(a,a$COD_SEXO)
-# })
-# #View(moradorConsumoPorDiaAgregado)
-# # COD_SEX = 1 para homens e 2 para mulheres
-# moradorConsumoPorDiaAgregadoFem<-lapply(moradorConsumoPorDiaAgregado , function(a){
-#   merge(x=a$`2`, y=datasusEstFem, by.x = c("Group.1", "classIDADE_ANOS"),
-#     by.y=c("estado", "Doenças..Faixas.Etárias.DRI"))
-#     })
-# moradorConsumoPorDiaAgregadoMas<-lapply(moradorConsumoPorDiaAgregado , function(a){
-#   merge(x=a$`1`, y=datasusEstMas, by.x = c("Group.1", "classIDADE_ANOS"),
-#         by.y=c("estado", "Doenças..Faixas.Etárias.DRI"))
-# })
+# transformar para lowercase para fundir os dados de consumo e mortalidade
+mortalidade$Unidade.da.Federação <- tolower(mortalidade$Unidade.da.Federação)
+# retirar acentos
+mortalidade$Unidade.da.Federação <- gsub( "á" , "a" ,mortalidade$Unidade.da.Federação)
+mortalidade$Unidade.da.Federação <- gsub( "ã" , "a" ,mortalidade$Unidade.da.Federação)
+mortalidade$Unidade.da.Federação <- gsub( "í" , "i" ,mortalidade$Unidade.da.Federação)
+mortalidade$Unidade.da.Federação <- gsub( "ô" , "o" ,mortalidade$Unidade.da.Federação)
+# ver os novos nomes dos estados para mortalidade
+unique(mortalidade$Unidade.da.Federação)
+
+#lista com dados para analizar
+myList<-lapply(moradorConsumoPorDiaAgregado , function(g){
+   merge(x=g, y=mortalidade, by.x = c("Group.1", "COD_SEXO"),
+     by.y=c("Unidade.da.Federação", "COD_SEXO"))
+     })
+
+
+
+mytable <- as.data.frame.list(myList)
+wantedColumnsIndex <- seq(from = 9, by = 6, to = length(mytable))
+mytable <- (mytable[c(1:6, wantedColumnsIndex)])
+
+# show 6th names
+names(mytable)[1:6] 
+# change that
+names(mytable)[1:6] <- c("estado", "COD_SEXO", "kcal..g..a", "populaçao", "obitos", "tme")
+head(mytable)
+
+lala<-NULL
+mytable$COD_SEXO <-  as.factor(mytable$COD_SEXO)
+levels(mytable$COD_SEXO) <- c("masculino","feminino")
+lala <- split(x = mytable, f = mytable$COD_SEXO)
+
+fit<-lm(data = lala$masculino, formula = tme ~ PROTEÍNA..g..a + LIPÍDEOS.TOTAIS..g..a + CARBOIDRATO..g..a+
+          FIBRA.ALIMENTAR.TOTAL..g..a + CÁLCIO..mg..a)
+summary(fit)
+fit<-lm(data = lala$feminino, formula = tme ~ PROTEÍNA..g..a + LIPÍDEOS.TOTAIS..g..a + CARBOIDRATO..g..a+
+          FIBRA.ALIMENTAR.TOTAL..g..a + CÁLCIO..mg..a )
+summary(fit)
+fit<-lm(data = lala$masculino, formula = tme ~ PROTEÍNA..g..a + LIPÍDEOS.TOTAIS..g..a + CARBOIDRATO..g..a+
+          FIBRA.ALIMENTAR.TOTAL..g..a + CÁLCIO..mg..a + MAGNÉSIO..mg..a + MANGANÊS..mg..a + FÓSFORO..mg..a + 
+          FERRO..mg..a + SÓDIO..mg..a + SÓDIO.DE.ADIÇÃO..mg..a)
+summary(fit)
+fit<-lm(data = lala$feminino, formula = tme ~ PROTEÍNA..g..a + LIPÍDEOS.TOTAIS..g..a + CARBOIDRATO..g..a+
+          FIBRA.ALIMENTAR.TOTAL..g..a + CÁLCIO..mg..a + MAGNÉSIO..mg..a + MANGANÊS..mg..a + FÓSFORO..mg..a + 
+          FERRO..mg..a + SÓDIO..mg..a + SÓDIO.DE.ADIÇÃO..mg..a)
+summary(fit)
+fit<-lm(data = lala$masculino, formula = tme ~ PROTEÍNA..g..a + LIPÍDEOS.TOTAIS..g..a + CARBOIDRATO..g..a+
+          FIBRA.ALIMENTAR.TOTAL..g..a + CÁLCIO..mg..a + MAGNÉSIO..mg..a + MANGANÊS..mg..a + FÓSFORO..mg..a + 
+          FERRO..mg..a + SÓDIO..mg..a + SÓDIO.DE.ADIÇÃO..mg..a + POTÁSSIO..mg..a + COBRE..mg..a + ZINCO..mg..a +
+          SELÊNIO..mcg..a + RETINOL..mcg..a)
+summary(fit)
+fit<-lm(data = lala$feminino, formula = tme ~ PROTEÍNA..g..a + LIPÍDEOS.TOTAIS..g..a + CARBOIDRATO..g..a+
+          FIBRA.ALIMENTAR.TOTAL..g..a + CÁLCIO..mg..a + MAGNÉSIO..mg..a + MANGANÊS..mg..a + FÓSFORO..mg..a + 
+          FERRO..mg..a + SÓDIO..mg..a + SÓDIO.DE.ADIÇÃO..mg..a + POTÁSSIO..mg..a + COBRE..mg..a + ZINCO..mg..a +
+          SELÊNIO..mcg..a + RETINOL..mcg..a)
+summary(fit)
+
+cor.test(lala$masculino$tme, lala$masculino$CARBOIDRATO..g..a)
+
+library (ggplot2)
+plot(mytable$tme ~ mytable$estado + mytable$COD_SEXO)
+qplot( PROTEÍNA..g..a, data = mytable, fill = COD_SEXO)
+
+#  moradorConsumoPorDiaAgregadoMas<-lapply(moradorConsumoPorDiaAgregado , function(a){
+#    merge(x=a$`1`, y=datasusEstMas, by.x = c("Group.1", "classIDADE_ANOS"),
+#          by.y=c("estado", "Doenças..Faixas.Etárias.DRI"))
+#  })
 # 
 # moradorConsumoPorDiaAgregadoFem<- lapply(moradorConsumoPorDiaAgregadoFem, function (a){
 #   split(a, a$classIDADE_ANOS)
