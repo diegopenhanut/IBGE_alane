@@ -266,30 +266,34 @@ mytable$COD_SEXO <-  as.factor(mytable$COD_SEXO)
 levels(mytable$COD_SEXO) <- c("masculino","feminino")
 lala <- split(x = mytable, f = mytable$COD_SEXO)
 
-fit<-lm(data = lala$masculino, formula = tme ~ PROTEÍNA..g..a + LIPÍDEOS.TOTAIS..g..a + CARBOIDRATO..g..a+
-          FIBRA.ALIMENTAR.TOTAL..g..a + CÁLCIO..mg..a)
-summary(fit)
-fit<-lm(data = lala$feminino, formula = tme ~ PROTEÍNA..g..a + LIPÍDEOS.TOTAIS..g..a + CARBOIDRATO..g..a+
-          FIBRA.ALIMENTAR.TOTAL..g..a + CÁLCIO..mg..a )
-summary(fit)
-fit<-lm(data = lala$masculino, formula = tme ~ PROTEÍNA..g..a + LIPÍDEOS.TOTAIS..g..a + CARBOIDRATO..g..a+
-          FIBRA.ALIMENTAR.TOTAL..g..a + CÁLCIO..mg..a + MAGNÉSIO..mg..a + MANGANÊS..mg..a + FÓSFORO..mg..a + 
-          FERRO..mg..a + SÓDIO..mg..a + SÓDIO.DE.ADIÇÃO..mg..a)
-summary(fit)
-fit<-lm(data = lala$feminino, formula = tme ~ PROTEÍNA..g..a + LIPÍDEOS.TOTAIS..g..a + CARBOIDRATO..g..a+
-          FIBRA.ALIMENTAR.TOTAL..g..a + CÁLCIO..mg..a + MAGNÉSIO..mg..a + MANGANÊS..mg..a + FÓSFORO..mg..a + 
-          FERRO..mg..a + SÓDIO..mg..a + SÓDIO.DE.ADIÇÃO..mg..a)
-summary(fit)
-fit<-lm(data = lala$masculino, formula = tme ~ PROTEÍNA..g..a + LIPÍDEOS.TOTAIS..g..a + CARBOIDRATO..g..a+
-          FIBRA.ALIMENTAR.TOTAL..g..a + CÁLCIO..mg..a + MAGNÉSIO..mg..a + MANGANÊS..mg..a + FÓSFORO..mg..a + 
-          FERRO..mg..a + SÓDIO..mg..a + SÓDIO.DE.ADIÇÃO..mg..a + POTÁSSIO..mg..a + COBRE..mg..a + ZINCO..mg..a +
-          SELÊNIO..mcg..a + RETINOL..mcg..a)
-summary(fit)
-fit<-lm(data = lala$feminino, formula = tme ~ PROTEÍNA..g..a + LIPÍDEOS.TOTAIS..g..a + CARBOIDRATO..g..a+
-          FIBRA.ALIMENTAR.TOTAL..g..a + CÁLCIO..mg..a + MAGNÉSIO..mg..a + MANGANÊS..mg..a + FÓSFORO..mg..a + 
-          FERRO..mg..a + SÓDIO..mg..a + SÓDIO.DE.ADIÇÃO..mg..a + POTÁSSIO..mg..a + COBRE..mg..a + ZINCO..mg..a +
-          SELÊNIO..mcg..a + RETINOL..mcg..a)
-summary(fit)
+#https://github.com/maifeng/R-Data-Mining-Notes/blob/master/8.%20Other%20topics/Other%20Variable%20Selection.Rmd
+library(glmnet)
+lala$masculino<-lala$masculino[-c(1,2,4,5)]
+#normalizar
+mydata<-scale(lala$masculino)
+View(mydata)
+
+lasso_fit = glmnet(x = as.matrix(mydata[, -c(which(colnames(mydata)=='tme'))]), y = mydata[,2], alpha = 1)
+coef(lasso_fit,s=0.5)
+coef(lasso_fit,s=1)
+
+cv_lasso_fit = cv.glmnet(x = as.matrix(mydata[, -c(which(colnames(mydata)=='tme'))]), y = mydata[,2], alpha = 1, nfolds = 5 )
+plot(cv_lasso_fit)
+
+cv_lasso_fit$lambda.min
+
+#min.model = lm(tme ~ 1, data=lala$masculino[3:length(lala$masculino)])
+#biggest <- formula(lm(tme~.,lala$masculino[3:length(lala$masculino)]))
+#biggest
+#fwd.model = step(min.model, direction='forward', scope=biggest)
+
+
+
+#fitMasculino<-lm(data = lala$masculino, formula = tme ~ kcal..g..a + PROTEÍNA..g..a + LIPÍDEOS.TOTAIS..g..a + CARBOIDRATO..g..a+ FIBRA.ALIMENTAR.TOTAL..g..a + CÁLCIO..mg..a  + MANGANÊS..mg..a + FERRO..mg..a + SÓDIO..mg..a + COBRE..mg..a + ZINCO..mg..a + SELÊNIO..mcg..a + RETINOL..mcg..a + TIAMINA..VITAMINA.B1...mg..a + RIBOFLAVINA..VITAMINA.B2...mg..a + PIRIDOXINA..VITAMINA.B6...mg..a + COBALAMINA..VITAMINA.B12...mcg..a + FOLATO..EQUIVALENTE.DIETÉTICO.DE.FOLATO...mcg..a + VITAMINA.D..CALCIFEROL...mcg..a + VITAMINA.E..TOTAL.DE.ALPHA.TOCOPHEROL...mg..a + VITAMINA.C..mg..a + ÁCIDOS.GRAXOS.SATURADOS..g..a + ÁCIDOS.GRAXOS.MONOINSATURADOS..g..a + ÁCIDOS.GRAXOS.POLIINSATURADOS..g..a+ ÁCIDOS.GRAXOS.TRANS.TOTAL..g..a + AÇÚCAR.TOTAL..g..a)
+#summary(fitMasculino)
+
+#fitFeminino<-lm(data = lala$feminino, formula = tme ~ kcal..g..a + PROTEÍNA..g..a + LIPÍDEOS.TOTAIS..g..a + CARBOIDRATO..g..a+ FIBRA.ALIMENTAR.TOTAL..g..a + CÁLCIO..mg..a  + MANGANÊS..mg..a + FERRO..mg..a + SÓDIO..mg..a + COBRE..mg..a + ZINCO..mg..a + SELÊNIO..mcg..a + RETINOL..mcg..a + TIAMINA..VITAMINA.B1...mg..a + RIBOFLAVINA..VITAMINA.B2...mg..a + PIRIDOXINA..VITAMINA.B6...mg..a + COBALAMINA..VITAMINA.B12...mcg..a + FOLATO..EQUIVALENTE.DIETÉTICO.DE.FOLATO...mcg..a + VITAMINA.D..CALCIFEROL...mcg..a + VITAMINA.E..TOTAL.DE.ALPHA.TOCOPHEROL...mg..a + VITAMINA.C..mg..a + ÁCIDOS.GRAXOS.SATURADOS..g..a + ÁCIDOS.GRAXOS.MONOINSATURADOS..g..a + ÁCIDOS.GRAXOS.POLIINSATURADOS..g..a+ ÁCIDOS.GRAXOS.TRANS.TOTAL..g..a + AÇÚCAR.TOTAL..g..a)
+#summary(fitFeminino)
 
 cor.test(lala$masculino$tme, lala$masculino$CARBOIDRATO..g..a)
 
