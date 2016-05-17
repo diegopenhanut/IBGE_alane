@@ -1,0 +1,116 @@
+---
+title: "Reprodução de Tabelas do relatório final da POF"
+author: "Emanuel Diego S Penha"
+date: "Maio 03, 2015"
+output:
+html_document:
+pandoc_args:
+    - +RTS
+    - -K64m
+    - -RTS
+      word_document: default
+      pdf_document:
+      toc: yes
+---
+
+
+Testing survey package
+
+```{r}
+library(survey)
+moradorMediaPorDia = read.csv(file = "../tables/consumo-media_simple_nutrientes_por_morador_por_dia.csv")
+options( survey.lonely.psu = "adjust" )
+names( moradorMediaPorDia ) <- tolower( names( moradorMediaPorDia ) )
+
+moradorMediaPorDia <-
+	transform(
+		moradorMediaPorDia , 
+		control = as.integer(paste0( cod_uf , num_seq , num_dv )) 
+	)
+
+head(moradorMediaPorDia)
+str(moradorMediaPorDia)
+
+load("../data/2009/poststr.rda")
+head(poststr)
+str(poststr)
+```
+
+```{r}
+x <- merge(x = moradorMediaPorDia, y = poststr, all.x = TRUE, by = "control")
+head(x)
+str(x)
+
+length(unique(x$id))
+
+x$one <- 1
+
+x <-
+	transform(
+		x , 
+		
+		# define age groups
+		idade.cat =
+			cut(
+				idade_anos , 
+				c( 10, 14, 19, 60, Inf ),
+				include.lowest = TRUE , 
+				right = FALSE
+			) 
+)
+sample.pof <- 
+	svydesign(
+		id = ~control , 
+		strata = ~estrato_unico ,
+		weights = ~fator_expansao2 ,
+		data = x ,
+		nest = TRUE
+	)
+
+pop.totals <- 
+	data.frame(
+		pos_estrato = unique( x$pos_estrato ) , 
+		Freq = unique( x$tot_pop ) 
+	)
+
+pof.design.pos <-
+	postStratify(
+		sample.pof , 
+		~pos_estrato , 
+		pop.totals
+	)
+
+res <- svyby(
+	~energia.kcal ,
+	~idade.cat + cod_sexo,
+	design = pof.design.pos,
+	svymean
+)
+
+print(t(res))
+
+res <- svyby(
+	~energia.kcal ,
+	~idade.cat + cod_sexo,
+	design = pof.design.pos,
+	svymean
+)
+
+print(t(res))
+
+#svytotal(
+#	~energia.kcal ,
+#	pof.design.pos
+#)
+#
+#svymean(
+#	~energia.kcal ,
+#	pof.design.pos
+#)
+#
+#svymean(
+#	~energia.kcal ,
+#	pof.design.pos
+#)
+```
+

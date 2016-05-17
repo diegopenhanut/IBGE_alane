@@ -1,0 +1,314 @@
+---
+title: "Processar Tabelas"
+author: "Emanuel Diego S Penha"
+date: "Maio 15, 2015"
+output:
+  html_document:
+  pdf_document:
+      toc: yes
+---
+
+# Carregar Bibliotecas
+
+```{r setup}
+library("dplyr")
+library("dicionariosIBGE")
+```
+
+```{r ler população}
+pop_mas <- read.table(file = "../data/populacao/pop_2011_mas.csv",
+		      skip = 4,
+		      nrows = 26, 
+		      sep = ";",
+		      header = TRUE, 
+		      na.strings="-",
+		      dec = ",")
+
+pop_mas$COD_SEXO <- "Masculino"
+
+pop_fem <- read.table(file = "../data/populacao/pop_2011_fem.csv",
+		      skip = 4, 
+		      nrows = 26,
+		      sep = ";",
+		      header = TRUE, 
+		      na.strings="-",
+		      dec = ",")
+
+pop_fem$COD_SEXO <- "Feminino"
+
+pop <- rbind(pop_mas, pop_fem)
+
+pop_mas <- NULL
+pop_fem <- NULL
+
+pop$populacao30_60 <- as.numeric(pop$X30.a.39.anos + pop$X40.a.49.anos + pop$X50.a.59.anos)
+pop$populacaoAcima60 <- as.numeric(pop$X60.a.69.anos + pop$X70.a.79.anos + pop$X80.anos.e.mais)
+
+head(pop)
+
+write.csv(x = pop, 
+          file = "../tables/população_brasil.csv",
+          quote = FALSE,
+          row.names=FALSE)
+```
+
+
+# Ler dados de Mortalidade
+
+```{r ler mortalidade}
+getMortalidade<-function(folder){
+	files <- list.files(folder, full.names = TRUE)
+	lapply(files, function (i){
+		       print (paste0("readind file", i))
+		       con <- file(i,open="r")
+		       ctable <- readLines(con,n=3)
+		       close(con)
+		       genero <- strsplit(ctable[3], split = " ")
+		       genero <- genero[[1]][2]
+		       data<-read.table(file = i,
+					skip = 4,
+					nrows = 26,
+					sep = ";",
+					header = TRUE, 
+					#fileEncoding =  "Latin1", 
+					na.strings="-",
+					dec = ",")
+		       data$COD_SEXO <- genero
+		       data$file <- basename(i)
+		       data$cancer <- strsplit(basename(i), "_")[[1]][1]
+
+		       data$obitosAcima60 <- rowSums(cbind(data$X60.a.69.anos,
+							   data$X70.a.79.anos,
+							   data$X80.anos.e.mais),
+						     na.rm = TRUE)
+
+		       data$obitos30_60 <- rowSums(cbind(data$X30.a.39.anos,
+							    data$X40.a.49.anos,
+							    data$X50.a.59.anos),
+						      na.rm = TRUE)
+		       data <- merge(x = data,
+				     y = pop,
+				     by = c("Unidade.da.Federação", "COD_SEXO"))
+
+		       data <- data[, c("Unidade.da.Federação", "cancer", "file",
+					"COD_SEXO", "populacaoAcima60", 
+					"obitosAcima60","populacao30_60", 
+					"obitos30_60"  )]
+
+		       data$tmeAcima60 <- data$obitosAcima60 / data$populacaoAcima60 * 100000
+		       data$tme30_60 <- data$obitos30_60 / data$populacao30_60 * 100000
+		       data
+		      })
+}
+
+mortalidade <- getMortalidade("../data/mortalidade/")
+mortalidade <- do.call("rbind", mortalidade)
+mortalidade$Unidade.da.Federação <- factor(mortalidade$Unidade.da.Federação)
+
+head (mortalidade)
+
+write.csv(x = mortalidade, 
+          file = "../tables/mortalidade_brasil.csv",
+          quote = FALSE,
+          row.names=FALSE)
+```
+
+# Carregando dados da POF
+
+Carregar pacote com dicionários
+
+```{r carregar dicionariosIBGE}
+data(package = "dicionariosIBGE")
+data(dicPOF2008.2009)
+```
+
+# Carregar dados de morador
+
+Tabelas estão em formato de coluna fixa.
+Essa parte é consideravelmente lenta.
+```{r ler POF morador}
+morador <- read.fwf("../data/T_MORADOR_S.txt", widths = dic2pof2008.2009$tamanho)
+colnames(morador) <- dic2pof2008.2009$cod
+morador$COD_SEXO <- factor(x = morador$COD_SEXO, labels = c("Masculino", "Feminino"))
+```
+
+# formatar dados de consumo
+criar lista com rotulos
+
+```{r ler rótulos POF}
+rotulos <- split(x = rot16pof2008.2009,f = rot16pof2008.2009$cod)
+```
+
+# Ler microdados de consumo de alimentos
+
+Outra grande tabela que demora bastante tempo para carregar
+
+```{r ler POF consumo}
+consumo <- read.fwf("../data/T_CONSUMO_S.txt", widths = dic16pof2008.2009$tamanho)
+```
+
+# Renomar colunas
+
+```{r renomar colunas de consumo}
+colnames (consumo) <- dic16pof2008.2009$cod
+nrow(consumo)
+```
+
+# Carregar tabela de composição usada na POF
+Link para download da tabela original: 
+(ftp://ftp.ibge.gov.br/Orcamentos_Familiares/Pesquisa_de_Orcamentos_Familiares_2008_2009/Tabelas_de_Composicao_Nutricional_dos_Alimentos_Consumidos_no_Brasil/tabelacompleta.zip) 
+
+```{r ler tabela de composicao centesimal}
+compCentesimal <- read.csv("../data/tabelacompleta_edited.csv", file = )
+
+# parse numeric columns
+for (i in seq(7,length(compCentesimal))){
+	compCentesimal[,i] <- as.numeric(as.character(compCentesimal[,i]))
+}
+```
+
+# Merge composição e consumo para obter ingestão de nutrientes.
+
+```{r merge consumo e composicao centesimal}
+compInd <- merge(x = consumo,
+		 y = compCentesimal, 
+		 by.x = c("COD_ITEM", "COD_PREPARACAO") ,
+		 by.y = c("CÓDIGO.DO.ALIMENTO", "CÓDIGO.DA.PREPARAÇÃO"), 
+		 all.x = TRUE)
+```
+
+# Regra de 3 para obter ingestão por indivíduo/dia para macronutrientes. 
+
+```{r função para regra de 3}
+regraDeTres <- function(numerator, denominator){
+	denominator / 100 * numerator
+}
+```
+
+# Usar somente as variaveis alimentares
+
+regra de tres para obter o consumo de nutrientes
+
+```{r}
+# Somente a qtd de ingestao por nutriente
+compInd[,31:67] <- regraDeTres(compInd[,31:67], compInd$QTD_FINAL)
+```
+
+# Adicionar coluna com ID
+
+```{r adicionar id a compInd}
+# Add a ID field
+compInd$ID <- factor(
+		     paste(compInd$COD_UF,
+			   compInd$NUM_SEQ,
+			   compInd$NUM_DV,
+			   compInd$COD_DOMC,
+			   compInd$NUM_UC,
+			   compInd$NUM_INFORMANTE,
+			   sep = " - ")
+		     )
+
+```
+
+# Merge com os dados de moradores
+criar ID para dados de moradores
+```{r adicionar id a morador}
+mumo-media_simple_nutrientes_por_morador_por_dia.csvrador$ID <- factor(
+		     paste(morador$COD_UF,
+			   morador$NUM_SEQ,
+			   morador$NUM_DV,
+			   morador$COD_DOMC,
+			   morador$NUM_UC,
+			   morador$NUM_INFORMANTE,
+			   sep = " - ")
+		     )
+```
+
+merge somente idade sexo e ID
+
+```{r merge morador e compInd}
+moradorConsumo <- merge(
+			x = morador[c("ID", "COD_SEXO", "IDADE_ANOS")],
+			y = compInd,
+			by.x = "ID",
+			by.y = "ID",
+			all.y = TRUE)
+
+moradorConsumo$ID <- factor(moradorConsumo$ID)
+moradorConsumo$COD_UF <- apply(moradorConsumo, 1 , function(aa){
+					     rotulos$COD_UF$rotulo[match (aa["COD_UF"], rotulos$COD_UF$valor)]
+				       })
+
+moradorConsumo$COD_UF <- as.factor(moradorConsumo$COD_UF)
+
+# show some data
+head(moradorConsumo)
+nrow(moradorConsumo)
+
+# salvar tabela
+write.csv(moradorConsumo, 
+	  file = "../tables/consumo-formato_longo_com_todos_os_registros.csv",
+	  quote = FALSE,
+	  row.names=FALSE)
+```
+
+
+num do quadro = 71 para primeiro dia, 72 para seagundo dia.
+
+# Somar os nutrientes para cada dia de consumo
+```{r total ingestão por pessoa}
+# using dplyr to fix NA issue
+moradorConsumoPorDia <- moradorConsumo %>% 
+	ungroup() %>%		
+	select(-c(4:6,10:13,17:33)) %>%
+replace(is.na(.), 0) %>%
+		group_by(ID, IDADE_ANOS, NUM_QUADRO, COD_UF, COD_SEXO, ID, FATOR_EXPANSAO1, FATOR_EXPANSAO2, NUM_SEQ, NUM_DV) %>%
+		summarise_each(funs(sum))
+
+	# add morador data (sexo, idade)
+	# moradorConsumoPorDia <- merge(x = moradorConsumoPorDia,
+	# 			      y = morador[c("ID", "COD_SEXO", "IDADE_ANOS")],
+	# 			      by.x = "ID",
+	# 			      by.y = "ID",
+	# 			      all.x = TRUE)
+
+	head(moradorConsumoPorDia[,1:10])
+	head(moradorConsumoPorDia)
+	head(moradorConsumoPorDia[,30:35])
+	summary(moradorConsumoPorDia[,1:10])
+
+
+```
+
+substituir COD_UF pelo rótulo
+
+```{r}
+
+# salvar tabela
+write.csv(moradorConsumoPorDia, 
+	  file = "../tables/consumo-soma_nutrientes_por_morador_por_dia.csv",
+	  quote = FALSE,
+	  row.names=FALSE)
+```
+
+Calcular media de dois dias (ou usar de um dia)
+
+```{r}
+
+moradorMediaPorDia <- moradorConsumoPorDia %>%
+	select(-NUM_QUADRO) %>%
+	group_by(ID, COD_UF, COD_SEXO, FATOR_EXPANSAO1, FATOR_EXPANSAO2, NUM_SEQ, NUM_DV) %>%
+	summarise_each(funs(mean))
+
+
+head(moradorMediaPorDia)
+nrow(moradorMediaPorDia) 
+head(moradorMediaPorDia$Idade_class) 
+
+
+write.csv(moradorMediaPorDia, 
+	  file = "../tables/consumo-media_simple_nutrientes_por_morador.csv",
+	  quote = FALSE,
+	  row.names=FALSE
+```
+

@@ -1,0 +1,90 @@
+# IBGE - Analise de dados de consumo alimentar
+
+Esse é um resumo sumário das análise feitas para 
+POF e Taxa de mortalidade Específica para Cancer de Mama.
+
+# bin/00-processar.tabelas.Rmd
+
+Resumidamente, os passos para se trabalhar com os dados de consumo são:
+1. Fundir a tabela de composição centesimal com os dados de consumo usando 
+  COD_ITEM, que é um código númerico que faz a ponte entre as duas tabelas.
+2. Calcular a quantidade de nutrientes em cada registro. Dividimos cada nutriente em cada linha por 100 e multipliccamos usando a coluna QTD_FINAL dos dados de consumo
+3. Somar a quantidade de nutrientes para cada dia de registro de cada morador
+4. Fazer a média de de ingestão para cada morador
+  
+
+## Input - Entrada de dados
+- data/tabelacompleta_edited.csv
+  - Tabela de composição centesimal de alimentos
+- data/T_CONSUMO_S.txt
+  - microdados de consumo, com dados de ingestão de nutrientes para cada
+    indívidio
+- data/T_MORADOR_S.txt
+  - dados relativos aos indívidos da POF. Necessário para obter idade e sexo
+    dos indivíduos da tabela anterior
+- data/mortalidade/
+  - dados de mortalidade por cancer do datasus, dividido por tipo de cancer,
+    faixa etária e sexo
+- data/populacao/
+  - população do brasil dividido por sexo masculino e feminino
+
+
+## Output - Tabelas Processadas
+- tables/amostra-por_classificacao_de_idade_e_sexo.csv
+  - Número de indivíduos por estado e sexo, idade acima de 60 anos
+- tables/mortalidade_brasil.csv
+  - Dados de mortalidade por neoplasia compilados. Divididos por sexo, faixa
+    etária e tipo de neoplasia.
+- tables/população_brasil.csv
+  - Dados de População compilados. Adicionamos duas colunas com a soma de
+    indivíduos entre 30 e 60 anos e com indíviduos acima de 60 anos
+- tables/consumo-formato_longo_com_todos_os_registros.csv
+  - Tabela em formato longo com todos os registros alimentares de todos os
+    dias, de todos os indivíduos.  Arquivo bastante extenso.
+- tables/consumo-soma_nutrientes_por_morador_por_dia.csv
+  - Soma da ingestão de nutrientes para cada dia e morador. Como exemplo, aqui
+    temos o consumo de proteína em gramas para cada dia de cada indivíduo.
+- tables/consumo-media_simple_nutrientes_por_morador_por_dia.csv
+  - Média simples de consumo de nutrientes de 1 ou 2 dias para cada indivíduo.
+
+
+# bin/01-obter-summario.Rmd
+
+O objetivo dessa parte é preparar os dados para a correlação.
+Então calculamos a média para cada estado, classificação de idade, e sexo
+e juntamos com os dados de mortalidade de cancer de mama.
+A idéia é que se tenha uma tabela limpa para se trabalhar com as correlações.
+
+## Input
+
+- tables/consumo-media_simple_nutrientes_por_morador_por_dia.csv
+
+## output
+
+- tables/consumo-media_ingestao_por_estado_class_idade_e_sexo.csv
+  - Média por Estado, faixa etária e sexo, da média de ingestão de nutrientes
+    por morador
+- tables/consumo_e_tme-cancer_de_mama.csv
+  - Fusão das tabelas
+    tables/consumo-media_ingestao_por_estado_class_idade_e_sexo.csv e
+    tables/mortalidade_brasil.csv para cancer de mama.
+
+# bin/02-correlacao.Rmd
+
+Calcula a correlação de Spearman da da Taxa de Mortalidade Específica vs média
+de nutrientes por estado. Todos os valoes de rho e p estão um mesmo arquivo,
+sendo que temos um específico com nutrientes ajustados por 1000kcal.
+
+## Input
+
+- tables/consumo_e_tme-cancer_de_mama.csv
+
+## Output
+
+- tables/correlation.table.spearman.csv
+  - Correlação de Spearman, valores de rho e p TME vs nutrientes
+- tables/correlation.table.spearman.adjusted.csv
+  - Correlação de Spearman, valores de rho e p TME vs nutrientes. Aqui cada
+    média de nutriente presente da tabela
+    tables/consumo_e_tme-cancer_de_mama.csv é dividido pela média de kcal e
+    dividido por 1000.

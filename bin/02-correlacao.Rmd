@@ -1,0 +1,71 @@
+---
+title: "02-correlacao"
+author: "penha eds"
+date: "May 15, 2016"
+output: html_document
+---
+
+
+```{r}
+library("dplyr")
+consumo <- read.csv(file = "../tables/consumo_e_tme-cancer_de_mama.csv")
+head(consumo)
+```
+
+```{r}
+p.value <- consumo %>%
+  select(-Unidade.da.Federação) %>%
+  group_by(COD_SEXO, idade_class) %>%
+  summarise_each(funs(cor.test(TME, . , method = "spearman")$p.value),
+                 -c(TME))
+
+p.value <- cbind("p.value", p.value)
+names(p.value)[1] <- "var"
+
+r.value <- consumo %>%
+  select(-Unidade.da.Federação) %>%
+  group_by(COD_SEXO, idade_class) %>%
+  summarise_each(funs(cor.test(TME, ., method = "spearman")$estimate),
+                 -c(TME))
+
+r.value <- cbind("r", r.value)
+names(r.value)[1] <- "var"
+corr.table <- rbind(p.value, r.value)
+
+head(corr.table)
+
+write.csv(x = corr.table, file = "../tables/correlation.table.spearman.csv")
+```
+
+```{r}
+consumo.adj <- consumo %>%
+	group_by(Unidade.da.Federação, COD_SEXO, idade_class, TME) %>%
+	summarise_each(funs(. / ENERGIA.kcal * 1000), -ENERGIA.kcal)
+
+consumo.adj <- data.frame(consumo.adj)
+head(consumo.adj)
+consumo[1:6, 1:10]
+
+p.value.adj <- consumo.adj %>%
+  select(-Unidade.da.Federação) %>%
+  group_by(COD_SEXO, idade_class) %>%
+  summarise_each(funs(cor.test(TME, . , method = "spearman" )[["p.value"]]), -TME)
+
+p.value.adj <- cbind("p.value", p.value.adj)
+names(p.value.adj)[1] <- "var"
+
+r.value.adj <- consumo.adj %>%
+  select(-Unidade.da.Federação) %>%
+  group_by(COD_SEXO, idade_class) %>%
+  summarise_each(funs(cor.test(TME, . , method = "spearman" )[["estimate"]]),
+                 -c(TME))
+
+r.value.adj <- cbind("r", r.value.adj)
+names(r.value.adj)[1] <- "var"
+corr.table.adj <- as.data.frame(rbind(p.value.adj, r.value.adj))
+
+head(corr.table.adj)
+
+write.csv(x = corr.table.adj,
+	  file = "../tables/correlation.table.spearman.adjusted.csv")
+```

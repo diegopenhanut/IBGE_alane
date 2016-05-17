@@ -1,0 +1,53 @@
+
+
+
+```{r}
+library("dplyr")
+library("reshape2")
+media <- read.csv("../tables/consumo-media_simple_nutrientes_por_morador.csv",
+                  row.names = FALSE)
+
+media$idade_class <- cut(x = media$IDADE_ANOS, breaks = c(30,60,Inf), include.lowest = T, right = F)
+summary(media$idade_class)
+str(media)
+```
+```{r obter amostra}
+amostra <- media %>% 
+	group_by(idade_class, COD_SEXO) %>%
+	summarize(n = length(ID))
+
+write.csv(amostra, "../tables/amostra-por_classificacao_de_idade_e_sexo.csv",
+          row.names = FALSE)
+```
+
+```{r media por estado}
+media_por_estado <- media %>% 
+	select(-IDADE_ANOS, -ID, -FATOR_EXPANSAO1, -FATOR_EXPANSAO2,
+	       -NUM_SEQ, -NUM_DV, -NUM_QUADRO) %>%
+	group_by(COD_UF, idade_class, COD_SEXO) %>%
+	summarize_each(funs(mean(.)))
+
+write.csv(media_por_estado, "../tables/consumo-media_ingestao_por_estado_class_idade_e_sexo.csv",
+          row.names = FALSE)
+
+```
+
+```{r media por estado}
+mort <- read.csv("../tables/mortalidade_brasil.csv")
+mort <- filter(mort, cancer == "mama")
+mort$Unidade.da.Federação <- tolower(mort$Unidade.da.Federação)
+mort <- select(mort, Unidade.da.Federação,  COD_SEXO, tme30_60, tmeAcima60)
+mort <- melt(mort, value.name = "TME", variable.name = "idade_class")
+levels(mort$idade_class) <- levels(media_por_estado$idade_class)
+head(mort)
+
+merged <- merge(x = mort, 
+              y = media_por_estado, 
+              by.x = c("Unidade.da.Federação", "COD_SEXO", "idade_class"),
+              by.y = c("COD_UF", "COD_SEXO", "idade_class"))
+
+write.csv(x = merged,
+          file = "../tables/consumo_e_tme-cancer_de_mama.csv", row.names = FALSE)  
+              
+
+```
