@@ -1,0 +1,15 @@
+# Sáb Jan 14 12:59:35 BRT 2017
+
+Durante a defesa do trabalho por Alane, foi pedido pela banca que a análise fosse refeita com dados de mortalidade mais recentes.
+Recebi de alane,em 16/04/2016, os referidos dados. Vou começar a refazer a análise agora.
+
+# Seg Jan 16 12:24:37 BRT 2017
+
+Os dados estavam em um formato diferente dos da última vez. Todo o código que cuidava da limpeza e organização das tabelas foi reescrito.
+Um problema recorrente ocorre com os acentos dos nomes de estado. Tive alguma dificuldade em fazer o join de tabelas por conta disso.
+
+Estou usando os dados das tabelas de consumo médio por estado geradas em análises anteriores. Isso me poupou bastante tempo.
+
+Iniciando os testes de correlação hoje, no período da tarde
+
+
